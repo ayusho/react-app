@@ -1,0 +1,179 @@
+{
+            "apiVersion": "v1",
+            "kind": "DeploymentConfig",
+            "metadata": {
+                "annotations": {
+                    "description": "botify backend",
+                    "service.alpha.openshift.io/dependencies": "[{\"name\": \"mongodb\", \"kind\": \"Service\"}]"
+                },
+                "generation": 1,
+                "labels": {
+                	 "template": "botifykit-persistent",
+                    "app": "botify-backend"
+                },
+                "name": "botify-backend"
+            },
+            "spec": {
+                "replicas": 1,
+                "selector": {
+                    "app": "botify-backend",
+                    "deploymentconfig": "botify-backend"
+                },
+                "strategy": {
+                    "activeDeadlineSeconds": 21600,
+                    "resources": {
+
+                    },
+                    "rollingParams": {
+                        "intervalSeconds": 1,
+                        "maxSurge": "25%",
+                        "maxUnavailable": "25%",
+                        "timeoutSeconds": 600,
+                        "updatePeriodSeconds": 1
+                    },
+                    "type": "Rolling"
+                },
+                "template": {
+                    "metadata": {
+                        "labels": {
+                            "app": "botify-backend",
+                            "deploymentconfig": "botify-backend",
+                            "name": "botify-backend"
+                        },
+                        "name": "botify-backend"
+                    },
+                    "spec": {
+                        "containers": [
+                            {
+                                "env": [
+                                    {
+                                        "name": "DATABASE_SERVICE_NAME",
+                                        "value": "mongodb"
+                           },
+                                    {
+                                        "name": "MONGODB_USER",
+                                        "valueFrom": {
+                                            "secretKeyRef": {
+                                                "key": "database-user",
+                                                "name": "mongodb"
+                                            }
+                                        }
+                           },
+                                    {
+                                        "name": "MONGODB_PASSWORD",
+                                        "valueFrom": {
+                                            "secretKeyRef": {
+                                                "key": "database-password",
+                                                "name": "mongodb"
+                                            }
+                                        }
+                           },
+                                    {
+                                        "name": "MONGODB_DATABASE",
+                                        "value": "botify3"
+                           },
+                                    {
+                                        "name": "MONGODB_ADMIN_PASSWORD",
+                                        "valueFrom": {
+                                            "secretKeyRef": {
+                                                "key": "database-admin-password",
+                                                "name": "mongodb"
+                                            }
+                                        }
+                           },
+                                    {
+                                        "name": "SECRET_SESSION",
+                                        "value": "innerbot"
+                           }
+                        ],
+                                "image": "docker-registry.default.svc:5000/botifykit-build/botify-build-backend@sha256:0e0bad07cf46e252f51d8aa4d2a12559121e319da7b0c454c91d643aa2098368",
+                                "imagePullPolicy": "IfNotPresent",
+                                "name": "botify-backend",
+                                "ports": [
+                                    {
+                                        "containerPort": 5000,
+                                        "protocol": "TCP"
+                           }
+                        ],
+                                "resources": {
+                                    "requests": {
+                                        "memory": "1Mi"
+                                    }
+                                },
+                                "terminationMessagePath": "/dev/termination-log",
+                                "terminationMessagePolicy": "File",
+                                "volumeMounts": [
+                                    {
+                                        "mountPath": "/usr/src/app/logs",
+                                        "name": "logs-volume"
+                           },
+                                    {
+                                        "mountPath": "/usr/src/app/uploadedDocuments",
+                                        "name": "uploaded-documents-volume"
+                           },
+                                    {
+                                        "mountPath": "/usr/src/app/temporaryDocuments",
+                                        "name": "temporary-documents-volume"
+                           }
+                        ]
+                     }
+                  ],
+                        "dnsPolicy": "ClusterFirst",
+                        "restartPolicy": "Always",
+                        "schedulerName": "default-scheduler",
+                        "securityContext": {
+
+                        },
+                        "terminationGracePeriodSeconds": 30,
+                        "volumes": [
+                            {
+                                "name": "logs-volume",
+                                "persistentVolumeClaim": {
+                                    "claimName": "logs-claim"
+                                }
+                     },
+                            {
+                                "name": "uploaded-documents-volume",
+                                "persistentVolumeClaim": {
+                                    "claimName": "uploaded-documents-claim"
+                                }
+                     },
+                            {
+                                "name": "temporary-documents-volume",
+                                "persistentVolumeClaim": {
+                                    "claimName": "temporary-documents-claim"
+                                }
+                     }
+                  ]
+                    }
+                },
+                "test": false,
+                "triggers": [
+                    {
+                        "imageChangeParams": {
+                            "automatic": true,
+                            "containerNames": [
+                        "botify-backend"
+                     ],
+                            "from": {
+                                "kind": "ImageStreamTag",
+                                "name": "botify-build-backend:master",
+                                "namespace": "botifykit-build"
+                            }
+                        },
+                        "type": "ImageChange"
+               },
+                    {
+                        "type": "ConfigChange"
+               }
+            ]
+            },
+            "status": {
+                "availableReplicas": 0,
+                "latestVersion": 0,
+                "observedGeneration": 0,
+                "replicas": 0,
+                "unavailableReplicas": 0,
+                "updatedReplicas": 0
+            }
+      }

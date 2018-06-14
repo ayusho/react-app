@@ -1,0 +1,188 @@
+{
+    "apiVersion": "v1",
+    "kind": "DeploymentConfig",
+    "metadata": {
+        "annotations": {
+            "description": "serverchat-botify",
+            "service.alpha.openshift.io/dependencies": "[{\"name\": \"mongodb\", \"kind\": \"Service\"}]"
+        },
+        "generation": 1,
+        "labels": {
+            "template": "botifykit-persistent",
+            "app": "serverchat-botify",
+            "customer": "botify"
+        },
+        "name": "serverchat-botify"
+    },
+    "spec": {
+        "replicas": 1,
+        "selector": {
+            "app": "serverchat-botify",
+            "deploymentconfig": "serverchat-botify"
+        },
+        "strategy": {
+            "activeDeadlineSeconds": 21600,
+            "resources": {
+
+            },
+            "rollingParams": {
+                "intervalSeconds": 1,
+                "maxSurge": "25%",
+                "maxUnavailable": "25%",
+                "timeoutSeconds": 600,
+                "updatePeriodSeconds": 1
+            },
+            "type": "Rolling"
+        },
+        "template": {
+            "metadata": {
+                "labels": {
+                    "app": "serverchat-botify",
+                    "deploymentconfig": "serverchat-botify",
+                    "name": "serverchat-botify",
+                    "customer": "botify"
+                },
+                "name": "serverchat-botify"
+            },
+            "spec": {
+                "containers": [{
+                    "env": [
+                        {
+                            "name": "NODE_ENV",
+                            "value": "production"
+			         },
+                        {
+                            "name": "SECRET_SESSION",
+                            "value": "innerbot"
+			         },
+                        {
+                            "name": "AUTH_TOKEN",
+                            "value": "innerbot"
+			         },
+                        {
+                            "name": "SERVERALGO_BASE_URI",
+                            "value": "algo-botify:8080"
+			         },
+                        {
+                            "name": "DB_DOMAIN",
+                            "value": "mongodb"
+			         },
+                        {
+                            "name": "DB_PORT",
+                            "value": "27017"
+			         },
+                        {
+                            "name": "DB_NAME",
+                            "value": "botify3"
+			         },
+                        {
+                            "name": "MAIN_PROVIDER",
+                            "value": "watson"
+			         },
+                        {
+                            "name": "MAIN_PROVIDER_SOCIAL",
+                            "value": "watsonSocial"
+			         },
+                        {
+                            "name": "MAIN_PROVIDER_DEFINITION",
+                            "value": "watsonDefinition"
+			         },
+                        {
+                            "name": "MAIN_PROVIDER_SYNONYM",
+                            "value": "watsonSynonym"
+			         },
+                        {
+                            "name": "TONE_ANALYZER",
+                            "value": "toneAnalyzer"
+			         },
+                        {
+                            "name": "DEFAULT_LANGUAGE",
+                            "value": "en-US"
+			         },
+                        {
+                            "name": "API_URL",
+                            "value": "to define"
+			         },
+                        {
+                            "name": "UPLOAD_FOLDER",
+                            "value": "/usr/src/files/upload/"
+			         },
+                        {
+                            "name": "DB_USER",
+                            "valueFrom": {
+                                "secretKeyRef": {
+                                    "key": "database-user",
+                                    "name": "mongodb"
+                                }
+                            }
+			         },
+                        {
+                            "name": "DB_PASSWORD",
+                            "valueFrom": {
+                                "secretKeyRef": {
+                                    "key": "database-password",
+                                    "name": "mongodb"
+                                }
+                            }
+			}
+		],
+                    "image": "docker-registry.default.svc:5000/botify-kit/serverchat@sha256:1b509a06221220109e4aaa8e4e3470820153146aae27ddb1e4c2e54980767c09",
+                    "imagePullPolicy": "Always",
+                    "name": "serverchat-botify",
+                    "ports": [{
+                        "containerPort": 8080,
+                        "protocol": "TCP"
+					}],
+                    "resources": {
+                        "requests": {
+                            "memory": "1Mi"
+                        }
+                    },
+                    "terminationMessagePath": "/dev/termination-log",
+                    "terminationMessagePolicy": "File",
+                    "volumeMounts": [{
+                        "mountPath": "/usr/src/files",
+                        "name": "serverchat-botify-1"
+					}]
+				}],
+                "dnsPolicy": "ClusterFirst",
+                "restartPolicy": "Always",
+                "schedulerName": "default-scheduler",
+                "securityContext": {
+
+                },
+                "terminationGracePeriodSeconds": 30,
+                "volumes": [{
+                    "name": "serverchat-botify-1"
+				}]
+            }
+        },
+        "test": false,
+        "triggers": [{
+                "imageChangeParams": {
+                    "automatic": true,
+                    "containerNames": [
+						"serverchat-botify"
+					],
+                    "from": {
+                        "kind": "ImageStreamTag",
+                        "name": "serverchat:custom-botify",
+                        "namespace": "botify-kit"
+                    }
+                },
+                "type": "ImageChange"
+			},
+            {
+                "type": "ConfigChange"
+			}
+		]
+    },
+    "status": {
+        "availableReplicas": 0,
+        "latestVersion": 0,
+        "observedGeneration": 0,
+        "replicas": 0,
+        "unavailableReplicas": 0,
+        "updatedReplicas": 0
+    }
+}

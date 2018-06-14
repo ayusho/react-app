@@ -1,0 +1,179 @@
+
+{
+    "apiVersion": "v1",
+    "kind": "DeploymentConfig",
+    "metadata": {
+        "creationTimestamp": null,
+        "generation": 1,
+        "labels": {
+            "app": "mongodb"
+        },
+        "name": "mongodb"
+    },
+    "spec": {
+        "replicas": 1,
+        "selector": {
+            "name": "mongodb"
+        },
+        "strategy": {
+            "activeDeadlineSeconds": 21600,
+            "recreateParams": {
+                "timeoutSeconds": 600
+            },
+            "resources": {
+
+            },
+            "type": "Recreate"
+        },
+        "template": {
+            "metadata": {
+                "creationTimestamp": null,
+                "labels": {
+                    "name": "mongodb"
+                }
+            },
+            "spec": {
+                "containers": [
+                    {
+                        "env": [
+                            {
+                                "name": "DATABASE_SERVICE_NAME",
+                                "value": "mongodb"
+                           },
+                            {
+                                "name": "MONGODB_USER",
+                                "valueFrom": {
+                                    "secretKeyRef": {
+                                        "key": "database-user",
+                                        "name": "mongodb"
+                                    }
+                                }
+                           },
+                            {
+                                "name": "MONGODB_PASSWORD",
+                                "valueFrom": {
+                                    "secretKeyRef": {
+                                        "key": "database-password",
+                                        "name": "mongodb"
+                                    }
+                                }
+                           },
+                            {
+                                "name": "MONGODB_DATABASE",
+                                "value": "botify3"
+                           },
+                            {
+                                "name": "MONGODB_ADMIN_PASSWORD",
+                                "valueFrom": {
+                                    "secretKeyRef": {
+                                        "key": "database-admin-password",
+                                        "name": "mongodb"
+                                    }
+                                }
+                           }
+                        ],
+                        "image": "registry.access.redhat.com/rhscl/mongodb-32-rhel7@sha256:ecff0e57fddae1440f312a7c446628aec9951d49e8f9862e30940e98ee7e667b",
+                        "imagePullPolicy": "IfNotPresent",
+                        "livenessProbe": {
+                            "failureThreshold": 3,
+                            "initialDelaySeconds": 30,
+                            "periodSeconds": 10,
+                            "successThreshold": 1,
+                            "tcpSocket": {
+                                "port": 27017
+                            },
+                            "timeoutSeconds": 1
+                        },
+                        "name": "mongodb",
+                        "ports": [
+                            {
+                                "containerPort": 27017,
+                                "protocol": "TCP"
+                           }
+                        ],
+                        "readinessProbe": {
+                            "exec": {
+                                "command": [
+                                 "/bin/sh",
+                                 "-i",
+                                 "-c",
+                                 "mongo 127.0.0.1:27017/$MONGODB_DATABASE -u $MONGODB_USER -p $MONGODB_PASSWORD --eval=\"quit()\""
+                              ]
+                            },
+                            "failureThreshold": 3,
+                            "initialDelaySeconds": 3,
+                            "periodSeconds": 10,
+                            "successThreshold": 1,
+                            "timeoutSeconds": 1
+                        },
+                        "resources": {
+                            "limits": {
+                                "memory": "512Mi"
+                            },
+                            "requests": {
+                                "memory": "10Mi"
+                            }
+                        },
+                        "securityContext": {
+                            "capabilities": {
+
+                            },
+                            "privileged": false
+                        },
+                        "terminationMessagePath": "/dev/termination-log",
+                        "terminationMessagePolicy": "File",
+                        "volumeMounts": [
+                            {
+                                "mountPath": "/var/lib/mongodb/data",
+                                "name": "mongodb-data"
+                           }
+                        ]
+                     }
+                  ],
+                "dnsPolicy": "ClusterFirst",
+                "restartPolicy": "Always",
+                "schedulerName": "default-scheduler",
+                "securityContext": {
+
+                },
+                "terminationGracePeriodSeconds": 30,
+                "volumes": [
+                    {
+                        "name": "mongodb-data",
+                        "persistentVolumeClaim": {
+                            "claimName": "mongodb"
+                        }
+                     }
+                  ]
+            }
+        },
+        "test": false,
+        "triggers": [
+            {
+                "imageChangeParams": {
+                    "automatic": true,
+                    "containerNames": [
+                        "mongodb"
+                     ],
+                    "from": {
+                        "kind": "ImageStreamTag",
+                        "name": "mongodb:3.2",
+                        "namespace": "openshift"
+                    }
+                },
+                "type": "ImageChange"
+               },
+            {
+                "type": "ConfigChange"
+               }
+            ]
+    },
+    "status": {
+        "availableReplicas": 0,
+        "latestVersion": 0,
+        "observedGeneration": 0,
+        "replicas": 0,
+        "unavailableReplicas": 0,
+        "updatedReplicas": 0
+    }
+}

@@ -1,0 +1,176 @@
+{
+    "apiVersion": "v1",
+    "kind": "DeploymentConfig",
+    "metadata": {
+        "annotations": {
+            "description": "algo-botify",
+            "service.alpha.openshift.io/dependencies": "[{\"name\": \"mongodb\", \"kind\": \"Service\"}]"
+        },
+        "generation": 1,
+        "labels": {
+            "template": "botifykit-persistent",
+            "app": "algo-botify",
+            "customer": "botify"
+        },
+        "name": "algo-botify"
+    },
+    "spec": {
+        "replicas": 1,
+        "selector": {
+            "app": "algo-botify",
+            "deploymentconfig": "algo-botify"
+        },
+        "strategy": {
+            "activeDeadlineSeconds": 21600,
+            "resources": {
+
+            },
+            "rollingParams": {
+                "intervalSeconds": 1,
+                "maxSurge": "25%",
+                "maxUnavailable": "25%",
+                "timeoutSeconds": 600,
+                "updatePeriodSeconds": 1
+            },
+            "type": "Rolling"
+        },
+        "template": {
+            "metadata": {
+                "labels": {
+                    "app": "algo-botify",
+                    "deploymentconfig": "algo-botify",
+                    "name": "algo-botify",
+                    "customer": "botify"
+                },
+                "name": "algo-botify"
+            },
+            "spec": {
+                "containers": [{
+                    "env": [{
+                            "name": "NODE_ENV",
+                            "value": "production"
+						},
+                        {
+                            "name": "SECRET_SESSION",
+                            "value": "innerbot"
+						},
+                        {
+                            "name": "AUTH_TOKEN",
+                            "value": "innerbot"
+						},
+                        {
+                            "name": "DB_DOMAIN",
+                            "value": "mongodb"
+						},
+                        {
+                            "name": "DB_PORT",
+                            "value": "27017"
+						},
+                        {
+                            "name": "DB_NAME",
+                            "value": "botify3"
+						}, {
+                            "name": "MAIN_PROVIDER_DEFINITION",
+                            "value": "watsonDefinition"
+						},
+                        {
+                            "name": "COGNITIVE_PROVIDERS",
+                            "value": "watson,watsonSocial,apiai,watsonSynonym,watsonDefinition,toneAnalyzer,watsonKFold"
+						},
+                        {
+                            "name": "MAIN_PROVIDER",
+                            "value": "watson"
+						},
+                        {
+                            "name": "MAIN_PROVIDER_SYNONYM",
+                            "value": "watsonSynonym"
+						},
+                        {
+                            "name": "MAIN_PROVIDER_SOCIAL",
+                            "value": "watsonSocial"
+						},
+                        {
+                            "name": "TONE_ANALYZER",
+                            "value": "toneAnalyzer"
+						}, {
+                            "name": "PORT",
+                            "value": "8080"
+						}, {
+                            "name": "DB_USER",
+                            "valueFrom": {
+                                "secretKeyRef": {
+                                    "key": "database-user",
+                                    "name": "mongodb"
+                                }
+                            }
+						},
+                        {
+                            "name": "DB_PASSWORD",
+                            "valueFrom": {
+                                "secretKeyRef": {
+                                    "key": "database-password",
+                                    "name": "mongodb"
+                                }
+                            }
+						}
+					],
+                    "image": "docker-registry.default.svc:5000/botify-kit/algo@sha256:d42356de649cc788748dd87d739a80ea42f489e22e90e56a5086acda7361854c",
+                    "imagePullPolicy": "Always",
+                    "name": "algo-botify",
+                    "ports": [{
+                        "containerPort": 8080,
+                        "protocol": "TCP"
+					}],
+                    "resources": {
+                        "requests": {
+                            "memory": "1Mi"
+                        }
+                    },
+                    "terminationMessagePath": "/dev/termination-log",
+                    "terminationMessagePolicy": "File",
+                    "volumeMounts": [{
+                        "mountPath": "/usr/src/app/.tmp/",
+                        "name": "algo-botify-1"
+					}]
+				}],
+                "dnsPolicy": "ClusterFirst",
+                "restartPolicy": "Always",
+                "schedulerName": "default-scheduler",
+                "securityContext": {
+
+                },
+                "terminationGracePeriodSeconds": 30,
+                "volumes": [{
+                    "name": "algo-botify-1"
+				}]
+            }
+        },
+        "test": false,
+        "triggers": [{
+                "imageChangeParams": {
+                    "automatic": true,
+                    "containerNames": [
+						"algo-botify"
+					],
+                    "from": {
+                        "kind": "ImageStreamTag",
+                        "name": "algo:custom-botify",
+                        "namespace": "botify-kit"
+                    }
+                },
+                "type": "ImageChange"
+			},
+            {
+                "type": "ConfigChange"
+			}
+		]
+    },
+    "status": {
+        "availableReplicas": 0,
+        "latestVersion": 0,
+        "observedGeneration": 0,
+        "replicas": 0,
+        "unavailableReplicas": 0,
+        "updatedReplicas": 0
+    }
+}

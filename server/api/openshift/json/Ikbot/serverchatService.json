@@ -1,0 +1,27 @@
+{
+    "apiVersion": "v1",
+    "kind": "Service",
+    "metadata": {
+        "annotations": {
+            "description": "the botifykit backend"
+        },
+        "labels": {
+            "app": "serverchat-botify",
+            "customer": "botify"
+        },
+        "name": "serverchat-botify"
+    },
+    "spec": {
+        "ports": [
+            {
+                "name": "8080-tcp",
+                "port": 8080,
+                "protocol": "TCP",
+                "targetPort": 8080
+               }
+            ],
+        "selector": {
+            "deploymentconfig": "serverchat-botify"
+        }
+    }
+}

@@ -1,0 +1,27 @@
+{
+    "apiVersion": "v1",
+    "kind": "Service",
+    "metadata": {
+        "annotations": {
+            "description": "the botifykit backend"
+        },
+        "labels": {
+            "app": "backoffice-botify",
+            "customer": "botify"
+        },
+        "name": "backoffice-botify"
+    },
+    "spec": {
+        "ports": [
+            {
+                "name": "8080-tcp",
+                "port": 8080,
+                "protocol": "TCP",
+                "targetPort": 8080
+               }
+            ],
+        "selector": {
+            "deploymentconfig": "backoffice-botify"
+        }
+    }
+}

@@ -1,0 +1,471 @@
+apiVersion: v1
+kind: Template
+labels:
+  template: botifykit-persistent
+message: |-
+  The following service(s) have been created in your project: ${BACKEND_NAME}, ${FRONTEND_NAME}, ${DATABASE_SERVICE_NAME}.
+metadata:
+  creationTimestamp: null
+  name: botifykit-node-testing-2
+  annotations:
+    openshift.io/display-name: BotifyKit-test (Persistent)
+    description: Build a new Botify Kit instance with its own database.
+    tags: botify,botifykit,node,mongo
+    iconClass: icon-nodejs
+objects:
+- apiVersion: v1
+  kind: PersistentVolumeClaim
+  metadata:
+    name: ${DATABASE_SERVICE_NAME}
+  spec:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: ${VOLUME_CAPACITY}
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    annotations:
+      description: botify backend
+      service.alpha.openshift.io/dependencies: '[{"name": "${DATABASE_SERVICE_NAME}",
+        "kind": "Service"}]'
+    generation: 1
+    labels:
+      app: ${BACKEND_NAME}
+    name: ${BACKEND_NAME}
+  spec:
+    replicas: 1
+    selector:
+      app: ${BACKEND_NAME}
+      deploymentconfig: ${BACKEND_NAME}
+    strategy:
+      activeDeadlineSeconds: 21600
+      resources: {}
+      rollingParams:
+        intervalSeconds: 1
+        maxSurge: 25%
+        maxUnavailable: 25%
+        timeoutSeconds: 600
+        updatePeriodSeconds: 1
+      type: Rolling
+    template:
+      metadata:
+        labels:
+          app: ${BACKEND_NAME}
+          deploymentconfig: ${BACKEND_NAME}
+          name: ${BACKEND_NAME}
+        name: ${BACKEND_NAME}
+      spec:
+        containers:
+        - env:
+          - name: DATABASE_SERVICE_NAME
+            value: ${DATABASE_SERVICE_NAME}
+          - name: MONGODB_USER
+            valueFrom:
+              secretKeyRef:
+                key: database-user
+                name: ${DATABASE_SERVICE_NAME}
+          - name: MONGODB_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                key: database-password
+                name: ${DATABASE_SERVICE_NAME}
+          - name: MONGODB_DATABASE
+            value: ${DATABASE_NAME}
+          - name: MONGODB_ADMIN_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                key: database-admin-password
+                name: ${DATABASE_SERVICE_NAME}
+          - name: SECRET_SESSION
+            value: innerbot
+          image: docker-registry.default.svc:5000/botifykit-build/botify-build-backend@sha256:0e0bad07cf46e252f51d8aa4d2a12559121e319da7b0c454c91d643aa2098368
+          imagePullPolicy: IfNotPresent
+          name: ${BACKEND_NAME}
+          ports:
+          - containerPort: 5000
+            protocol: TCP
+          resources:
+            requests:
+              memory: 1Mi
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /usr/src/app/logs
+            name: logs-volume
+          - mountPath: /usr/src/app/uploadedDocuments
+            name: uploaded-documents-volume
+          - mountPath: /usr/src/app/temporaryDocuments
+            name: temporary-documents-volume
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - name: logs-volume
+          persistentVolumeClaim:
+            claimName: logs-claim
+        - name: uploaded-documents-volume
+          persistentVolumeClaim:
+            claimName: uploaded-documents-claim
+        - name: temporary-documents-volume
+          persistentVolumeClaim:
+            claimName: temporary-documents-claim
+    test: false
+    triggers:
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - botify-backend
+        from:
+          kind: ImageStreamTag
+          name: botify-build-backend:master
+          namespace: botifykit-build
+      type: ImageChange
+    - type: ConfigChange
+  status:
+    availableReplicas: 0
+    latestVersion: 0
+    observedGeneration: 0
+    replicas: 0
+    unavailableReplicas: 0
+    updatedReplicas: 0
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    annotations:
+      openshift.io/generated-by: OpenShiftWebConsole
+    creationTimestamp: null
+    generation: 1
+    labels:
+      app: ${FRONTEND_NAME}
+    name: ${FRONTEND_NAME}
+  spec:
+    replicas: 1
+    selector:
+      app: ${FRONTEND_NAME}
+      deploymentconfig: ${FRONTEND_NAME}
+    strategy:
+      activeDeadlineSeconds: 21600
+      resources: {}
+      rollingParams:
+        intervalSeconds: 1
+        maxSurge: 25%
+        maxUnavailable: 25%
+        timeoutSeconds: 600
+        updatePeriodSeconds: 1
+      type: Rolling
+    template:
+      metadata:
+        labels:
+          app: ${FRONTEND_NAME}
+          deploymentconfig: ${FRONTEND_NAME}
+          name: ${FRONTEND_NAME}
+        name: ${FRONTEND_NAME}
+      spec:
+        containers:
+        - env:
+          - name: BOTIFY_BACKEND_HOST_PATH
+            value: ${BACKEND_NAME}:5000/
+          image: botifykit-build/botify-build-frontend@sha256:6276854aa6c4bc9db66bd2524ca4545b898aa7425d7af657e5d7f605bcc6841b
+          imagePullPolicy: IfNotPresent
+          name: botify-frontend
+          ports:
+          - containerPort: 8081
+            protocol: TCP
+          resources:
+            requests:
+              cpu: 1m
+              memory: 1Mi
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+    test: false
+    triggers:
+    - type: ConfigChange
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - botify-frontend
+        from:
+          kind: ImageStreamTag
+          name: botify-build-frontend:master
+          namespace: botifykit-build
+      type: ImageChange
+  status:
+    availableReplicas: 0
+    latestVersion: 0
+    observedGeneration: 0
+    replicas: 0
+    unavailableReplicas: 0
+    updatedReplicas: 0
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    creationTimestamp: null
+    generation: 1
+    labels:
+      app: ${DATABASE_SERVICE_NAME}
+    name: ${DATABASE_SERVICE_NAME}
+  spec:
+    replicas: 1
+    selector:
+      name: ${DATABASE_SERVICE_NAME}
+    strategy:
+      activeDeadlineSeconds: 21600
+      recreateParams:
+        timeoutSeconds: 600
+      resources: {}
+      type: Recreate
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          name: ${DATABASE_SERVICE_NAME}
+      spec:
+        containers:
+        - env:
+          - name: DATABASE_SERVICE_NAME
+            value: ${DATABASE_SERVICE_NAME}
+          - name: MONGODB_USER
+            valueFrom:
+              secretKeyRef:
+                key: database-user
+                name: ${DATABASE_SERVICE_NAME}
+          - name: MONGODB_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                key: database-password
+                name: ${DATABASE_SERVICE_NAME}
+          - name: MONGODB_DATABASE
+            value: ${DATABASE_NAME}
+          - name: MONGODB_ADMIN_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                key: database-admin-password
+                name: ${DATABASE_SERVICE_NAME}
+          image: registry.access.redhat.com/rhscl/mongodb-32-rhel7@sha256:ecff0e57fddae1440f312a7c446628aec9951d49e8f9862e30940e98ee7e667b
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            failureThreshold: 3
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            successThreshold: 1
+            tcpSocket:
+              port: 27017
+            timeoutSeconds: 1
+          name: mongodb
+          ports:
+          - containerPort: 27017
+            protocol: TCP
+          readinessProbe:
+            exec:
+              command:
+              - /bin/sh
+              - -i
+              - -c
+              - mongo 127.0.0.1:27017/$MONGODB_DATABASE -u $MONGODB_USER -p $MONGODB_PASSWORD
+                --eval="quit()"
+            failureThreshold: 3
+            initialDelaySeconds: 3
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+          resources:
+            limits:
+              memory: 512Mi
+            requests:
+              memory: 10Mi
+          securityContext:
+            capabilities: {}
+            privileged: false
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /var/lib/mongodb/data
+            name: mongodb-data
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - name: mongodb-data
+          persistentVolumeClaim:
+            claimName: ${DATABASE_SERVICE_NAME}
+    test: false
+    triggers:
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - mongodb
+        from:
+          kind: ImageStreamTag
+          name: mongodb:3.2
+          namespace: openshift
+      type: ImageChange
+    - type: ConfigChange
+  status:
+    availableReplicas: 0
+    latestVersion: 0
+    observedGeneration: 0
+    replicas: 0
+    unavailableReplicas: 0
+    updatedReplicas: 0
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      description: the botifykit backend
+    labels:
+      app: ${BACKEND_NAME}
+    name: ${BACKEND_NAME}
+  spec:
+    ports:
+    - name: 5000-tcp
+      port: 5000
+      protocol: TCP
+      targetPort: 5000
+    selector:
+      deploymentconfig: ${BACKEND_NAME}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      description: botifykit front end
+    labels:
+      app: ${FRONTEND_NAME}
+    name: ${FRONTEND_NAME}
+  spec:
+    ports:
+    - name: 8081-tcp
+      port: 8081
+      protocol: TCP
+      targetPort: 8081
+    selector:
+      deploymentconfig: ${FRONTEND_NAME}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      description: botifykit mongodb
+    labels:
+      app: ${DATABASE_SERVICE_NAME}
+    name: ${DATABASE_SERVICE_NAME}
+  spec:
+    ports:
+    - name: mongo
+      port: 27017
+      protocol: TCP
+      targetPort: 27017
+    selector:
+      name: ${DATABASE_SERVICE_NAME}
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    name: ${DATABASE_SERVICE_NAME}
+  stringData:
+    database-admin-password: ${DATABASE_ADMIN_PASSWORD}
+    database-password: ${DATABASE_PASSWORD}
+    database-user: ${DATABASE_USER}
+- apiVersion: v1
+  kind: Route
+  metadata:
+    annotations:
+      template.openshift.io/expose-uri: http://{.spec.host}{.spec.path}
+    name: ${FRONTEND_NAME}
+  spec:
+    host: ${APPLICATION_DOMAIN}
+    to:
+      kind: Service
+      name: ${FRONTEND_NAME}
+- apiVersion: v1
+  kind: Route
+  metadata:
+    annotations:
+      template.openshift.io/expose-uri: http://{.spec.host}{.spec.path}
+    name: ${BACKEND_NAME}
+  spec:
+    host: ${APPLICATION_DOMAIN}
+    to:
+      kind: Service
+      name: ${BACKEND_NAME}
+- apiVersion: v1
+  kind: PersistentVolumeClaim
+  metadata:
+    name: logs-claim
+  spec:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: ${VOLUME_CAPACITY}
+- apiVersion: v1
+  kind: PersistentVolumeClaim
+  metadata:
+    name: uploaded-documents-claim
+  spec:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: ${VOLUME_CAPACITY}
+- apiVersion: v1
+  kind: PersistentVolumeClaim
+  metadata:
+    name: temporary-documents-claim
+  spec:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: ${VOLUME_CAPACITY}
+parameters:
+- description: The name assigned to the botify frontend for this
+  displayName: Frontend Name
+  name: FRONTEND_NAME
+  required: true
+  value: botify-frontend
+- description: The name assigned to the botify backend for this
+  displayName: Backend Name
+  name: BACKEND_NAME
+  required: true
+  value: botify-backend
+- description: Volume space available for data, e.g. 512Mi, 2Gi
+  displayName: Volume Capacity
+  name: VOLUME_CAPACITY
+  required: true
+  value: 1Gi
+- description: The exposed hostname that will route to the Node.js service, if left
+    blank a value will be defaulted.
+  displayName: Application Hostname
+  name: APPLICATION_DOMAIN
+- displayName: Database Service Name
+  name: DATABASE_SERVICE_NAME
+  required: true
+  value: mongodb
+- description: Username for MongoDB user that will be used for accessing the database.
+  displayName: MongoDB Username
+  from: user[A-Z0-9]{3}
+  generate: expression
+  name: DATABASE_USER
+- description: Password for the MongoDB user.
+  displayName: MongoDB Password
+  from: '[a-zA-Z0-9]{16}'
+  generate: expression
+  name: DATABASE_PASSWORD
+- displayName: Database Name
+  name: DATABASE_NAME
+  required: true
+  value: botify3
+- description: Password for the database admin user.
+  displayName: Database Administrator Password
+  from: '[a-zA-Z0-9]{16}'
+  generate: expression
+  name: DATABASE_ADMIN_PASSWORD
